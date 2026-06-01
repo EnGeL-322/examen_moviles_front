@@ -5,6 +5,7 @@ import 'package:sales/config/app_config.dart';
 import 'package:sales/models/client.dart';
 import 'package:sales/models/product.dart';
 import 'package:sales/models/sale.dart';
+import 'package:sales/services/api_exception.dart';
 
 class SaleService {
   final String apiUrl = AppConfig.apiUrl;
@@ -18,7 +19,7 @@ class SaleService {
       return jsonResponse.map((saleJson) => Sale.fromJson(saleJson)).toList();
     }
 
-    throw Exception('Error al cargar ventas');
+    throw ApiException.fromResponse('Error al cargar ventas', response.body);
   }
 
   Future<void> save(Client client, Product product) async {
@@ -38,7 +39,7 @@ class SaleService {
     );
 
     if (response.statusCode != 201) {
-      throw Exception('Error al guardar venta');
+      throw ApiException.fromResponse('Error al guardar venta', response.body);
     }
   }
 }

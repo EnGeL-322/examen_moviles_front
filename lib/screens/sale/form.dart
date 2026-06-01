@@ -44,12 +44,42 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
         _selectedProduct = products.isNotEmpty ? products.first : null;
         _loading = false;
       });
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
       setState(() {
-        _error = 'No se pudieron cargar clientes o productos desde la API';
+        _error = error.toString();
         _loading = false;
       });
+    }
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<void> _save() async {
+    if (_selectedClient == null || _selectedProduct == null) {
+      _showMessage('Selecciona un cliente y un producto');
+      return;
+    }
+
+    setState(() => _saving = true);
+
+    try {
+      await context.read<SaleProvider>().save(
+        _selectedClient!,
+        _selectedProduct!,
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (error) {
+      if (!mounted) return;
+      _showMessage(error.toString());
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -120,19 +150,7 @@ class _SaleFormScreenState extends State<SaleFormScreen> {
                       ),
                       const SizedBox(height: 10),
                       ElevatedButton(
-                        onPressed: _saving ||
-                                _selectedClient == null ||
-                                _selectedProduct == null
-                            ? null
-                            : () async {
-                                setState(() => _saving = true);
-                                await context.read<SaleProvider>().save(
-                                  _selectedClient!,
-                                  _selectedProduct!,
-                                );
-                                if (!context.mounted) return;
-                                Navigator.pop(context);
-                              },
+                        onPressed: _saving ? null : _save,
                         child: Text(_saving ? 'Guardando...' : 'Guardar'),
                       ),
                     ],

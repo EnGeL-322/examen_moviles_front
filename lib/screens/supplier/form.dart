@@ -16,6 +16,7 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
   final TextEditingController controllerName = TextEditingController();
   final TextEditingController controllerRuc = TextEditingController();
   final TextEditingController controllerPhone = TextEditingController();
+  bool _saving = false;
 
   @override
   void initState() {
@@ -34,6 +35,52 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
     controllerRuc.dispose();
     controllerPhone.dispose();
     super.dispose();
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<void> _save() async {
+    final name = controllerName.text.trim();
+    final ruc = controllerRuc.text.trim();
+    final phone = controllerPhone.text.trim();
+    final isEditing = widget.supplier != null;
+
+    if (name.isEmpty || ruc.isEmpty || phone.isEmpty) {
+      _showMessage('Completa todos los campos');
+      return;
+    }
+
+    setState(() => _saving = true);
+
+    try {
+      final supplier = Supplier(
+        widget.supplier?.id ?? 0,
+        name,
+        ruc,
+        phone,
+        false,
+        widget.supplier?.serverId,
+      );
+
+      final provider = context.read<SupplierProvider>();
+      if (isEditing) {
+        await provider.edit(widget.supplier!.id, supplier);
+      } else {
+        await provider.save(supplier);
+      }
+
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (error) {
+      if (!mounted) return;
+      _showMessage(error.toString());
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
@@ -76,37 +123,10 @@ class _SupplierFormScreenState extends State<SupplierFormScreen> {
             ),
             const SizedBox(height: 10),
             ElevatedButton(
-              onPressed: () async {
-                if (controllerName.text.trim().isEmpty ||
-                    controllerRuc.text.trim().isEmpty ||
-                    controllerPhone.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Completa todos los campos')),
-                  );
-                  return;
-                }
-
-                final supplier = Supplier(
-                  widget.supplier?.id ?? 0,
-                  controllerName.text.trim(),
-                  controllerRuc.text.trim(),
-                  controllerPhone.text.trim(),
-                  false,
-                  widget.supplier?.serverId,
-                );
-
-                if (isEditing) {
-                  await context
-                      .read<SupplierProvider>()
-                      .edit(widget.supplier!.id, supplier);
-                } else {
-                  await context.read<SupplierProvider>().save(supplier);
-                }
-
-                if (!context.mounted) return;
-                Navigator.pop(context);
-              },
-              child: Text(isEditing ? 'Editar' : 'Crear'),
+              onPressed: _saving ? null : _save,
+              child: Text(
+                _saving ? 'Guardando...' : (isEditing ? 'Editar' : 'Crear'),
+              ),
             ),
           ],
         ),

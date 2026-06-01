@@ -13,8 +13,9 @@ class ClientFormScreen extends StatefulWidget {
 }
 
 class _ClientFormScreenState extends State<ClientFormScreen> {
-  TextEditingController controllerName = TextEditingController();
-  TextEditingController controllerDocumentNumber = TextEditingController();
+  final TextEditingController controllerName = TextEditingController();
+  final TextEditingController controllerDocumentNumber = TextEditingController();
+  bool _saving = false;
 
   @override
   void initState() {
@@ -23,6 +24,58 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
     if (client != null) {
       controllerName.text = client.name;
       controllerDocumentNumber.text = client.documentNumber;
+    }
+  }
+
+  @override
+  void dispose() {
+    controllerName.dispose();
+    controllerDocumentNumber.dispose();
+    super.dispose();
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<void> _save() async {
+    final name = controllerName.text.trim();
+    final documentNumber = controllerDocumentNumber.text.trim();
+    final isEditing = widget.client != null;
+
+    if (name.isEmpty || documentNumber.isEmpty) {
+      _showMessage('Completa todos los campos');
+      return;
+    }
+
+    setState(() => _saving = true);
+
+    try {
+      final provider = context.read<ClientProvider>();
+      if (isEditing) {
+        await provider.edit(
+          widget.client!.id,
+          Client(
+            widget.client!.id,
+            name,
+            documentNumber,
+            false,
+            widget.client!.serverId,
+          ),
+        );
+      } else {
+        await provider.save(Client(0, name, documentNumber, false, null));
+      }
+
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (error) {
+      if (!mounted) return;
+      _showMessage(error.toString());
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -51,48 +104,16 @@ class _ClientFormScreenState extends State<ClientFormScreen> {
               controller: controllerDocumentNumber,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                labelText: 'Número de documento',
+                labelText: 'Numero de documento',
                 border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 10),
             ElevatedButton(
-              onPressed: () async {
-                if (controllerName.text.trim().isEmpty ||
-                    controllerDocumentNumber.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Completa todos los campos'),
-                    ),
-                  );
-                  return;
-                }
-                if (isEditing) {
-                  await context.read<ClientProvider>().edit(
-                    widget.client!.id,
-                    Client(
-                      widget.client!.id,
-                      controllerName.text.trim(),
-                      controllerDocumentNumber.text.trim(),
-                      false,
-                      widget.client!.serverId,
-                    ),
-                  );
-                } else {
-                  await context.read<ClientProvider>().save(
-                    Client(
-                      0,
-                      controllerName.text.trim(),
-                      controllerDocumentNumber.text.trim(),
-                      false,
-                      null,
-                    ),
-                  );
-                }
-                if (!context.mounted) return;
-                Navigator.pop(context);
-              },
-              child: Text(isEditing ? 'Editar' : 'Crear'),
+              onPressed: _saving ? null : _save,
+              child: Text(
+                _saving ? 'Guardando...' : (isEditing ? 'Editar' : 'Crear'),
+              ),
             ),
           ],
         ),

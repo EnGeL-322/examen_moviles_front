@@ -3,6 +3,7 @@ import 'dart:convert' as convert;
 import 'package:http/http.dart' as http;
 import 'package:sales/config/app_config.dart';
 import 'package:sales/models/supplier.dart';
+import 'package:sales/services/api_exception.dart';
 
 enum SupplierSyncResult { created, updated, duplicate, error }
 
@@ -20,7 +21,10 @@ class SupplierService {
           .toList();
     }
 
-    throw Exception('Error al cargar proveedores');
+    throw ApiException.fromResponse(
+      'Error al cargar proveedores',
+      response.body,
+    );
   }
 
   Future<(SupplierSyncResult, int?)> save(Supplier supplier) async {
@@ -60,8 +64,11 @@ class SupplierService {
     final url = Uri.http(apiUrl, '/provider/providers/$serverId/');
     final response = await http.delete(url);
 
-    if (response.statusCode != 204) {
-      throw Exception('Error al eliminar proveedor');
+    if (response.statusCode != 204 && response.statusCode != 404) {
+      throw ApiException.fromResponse(
+        'Error al eliminar proveedor',
+        response.body,
+      );
     }
   }
 }

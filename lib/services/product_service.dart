@@ -3,71 +3,78 @@ import 'dart:convert' as convert;
 import 'package:http/http.dart' as http;
 import 'package:sales/config/app_config.dart';
 import 'package:sales/models/product.dart';
+import 'package:sales/services/api_exception.dart';
 
 class ProductService {
   final String apiUrl = AppConfig.apiUrl;
 
   Future<List<Product>> all() async {
-    var url = Uri.http(apiUrl, '/product/products/');
-    var response = await http.get(url);
-    if (response.statusCode == 200) {
-      var jsonResponse = convert.jsonDecode(response.body) as List<dynamic>;
+    final url = Uri.http(apiUrl, '/product/products/');
+    final response = await http.get(url);
 
-      List<Product> products = jsonResponse
-          .map((catJson) => Product.fromJson(catJson))
+    if (response.statusCode == 200) {
+      final jsonResponse = convert.jsonDecode(response.body) as List<dynamic>;
+      return jsonResponse
+          .map((productJson) => Product.fromJson(productJson))
           .toList();
-      return products;
-    } else {
-      throw Exception('Error al cargar products');
     }
+
+    throw ApiException.fromResponse('Error al cargar productos', response.body);
   }
 
   Future<Product> getById(int id) async {
-    var url = Uri.http(apiUrl, '/product/products/$id/');
-    var response = await http.get(url);
+    final url = Uri.http(apiUrl, '/product/products/$id/');
+    final response = await http.get(url);
+
     if (response.statusCode == 200) {
-      var jsonResponse = convert.jsonDecode(response.body) as dynamic;
-
-      Product product = Product.fromJson(jsonResponse);
-
-      return product;
-    } else {
-      throw Exception('Error al cargar products');
+      final jsonResponse = convert.jsonDecode(response.body);
+      return Product.fromJson(jsonResponse);
     }
+
+    throw ApiException.fromResponse('Error al cargar producto', response.body);
   }
 
   Future<void> save(Product product) async {
-    var url = Uri.http(apiUrl, '/product/products/');
-
-    var response = await http.post(
+    final url = Uri.http(apiUrl, '/product/products/');
+    final response = await http.post(
       url,
       body: convert.jsonEncode(product.toJson()),
       headers: {'Content-Type': 'application/json'},
     );
+
     if (response.statusCode != 201) {
-      throw Exception('Error al guardar ');
+      throw ApiException.fromResponse(
+        'Error al guardar producto',
+        response.body,
+      );
     }
   }
 
   Future<void> edit(int id, Product product) async {
-    var url = Uri.http(apiUrl, '/product/products/$id/');
-
-    var response = await http.put(
+    final url = Uri.http(apiUrl, '/product/products/$id/');
+    final response = await http.put(
       url,
       body: convert.jsonEncode(product.toJson()),
       headers: {'Content-Type': 'application/json'},
     );
+
     if (response.statusCode != 200) {
-      throw Exception('Error al editar ');
+      throw ApiException.fromResponse(
+        'Error al editar producto',
+        response.body,
+      );
     }
   }
 
   Future<void> delete(int id) async {
-    var url = Uri.http(apiUrl, '/product/products/$id/');
+    final url = Uri.http(apiUrl, '/product/products/$id/');
+    final response = await http.delete(url);
 
-    var response = await http.delete(url);
-    if (response.statusCode != 204) {
-      throw Exception('Error al eliminar ');
+    if (response.statusCode != 204 && response.statusCode != 404) {
+      throw ApiException.fromResponse(
+        'Error al eliminar producto',
+        response.body,
+      );
     }
   }
 }

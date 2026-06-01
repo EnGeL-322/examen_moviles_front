@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sales/models/category.dart';
+import 'package:sales/providers/category_provider.dart';
 import 'package:sales/screens/category/form.dart';
-
-import '../../providers/category_provider.dart';
 
 class CategoryDetailScreen extends StatefulWidget {
   final int idCategory;
@@ -14,78 +14,72 @@ class CategoryDetailScreen extends StatefulWidget {
 }
 
 class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
-  @override
-  void initState() {
-    super.initState();
+  Category? _findCategory(List<Category> categories) {
+    for (final category in categories) {
+      if (category.id == widget.idCategory) return category;
+    }
+    return null;
   }
 
   @override
   Widget build(BuildContext context) {
-    final category = context.watch<CategoryProvider>().getById(
-      widget.idCategory,
-    );
-
-/*
     final categories = context.watch<CategoryProvider>().categories;
-
-    if (categories.isEmpty) {
-      return Scaffold(
-        appBar: AppBar(
-          title: Text("Detalle de Categorias"),
-          backgroundColor: Colors.orange,
-        ),
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    final category = context.read<CategoryProvider>().getById(widget.idCategory);
-*/
+    final category = _findCategory(categories);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("Detalle de Categorias"),
+        title: const Text("Detalle de Categorias"),
         backgroundColor: Colors.orange,
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Row(children: [Text("ID: "), Text(category.id.toString())]),
-            Row(children: [Text("Nombre: "), Text(category.name)]),
-            Row(children: [Text("Descripción: "), Text(category.description)]),
-            Row(
-              children: [
-                ElevatedButton(
-                  style: ButtonStyle(
-                    backgroundColor: WidgetStatePropertyAll(Colors.red),
+      body: category == null
+          ? const Center(child: CircularProgressIndicator())
+          : Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Row(children: [const Text("ID: "), Text(category.id.toString())]),
+                  Row(children: [const Text("Nombre: "), Text(category.name)]),
+                  Row(
+                    children: [
+                      const Text("Descripcion: "),
+                      Text(category.description),
+                    ],
                   ),
-                  onPressed: () async {
-                    await context.read<CategoryProvider>().delete(category.id);
-                    if (!context.mounted) return;
-                    Navigator.pop(context);
-                  },
-                  child: Text(
-                    "Eliminar",
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            CategoryFormScreen(category: category),
+                  Row(
+                    children: [
+                      ElevatedButton(
+                        style: const ButtonStyle(
+                          backgroundColor: WidgetStatePropertyAll(Colors.red),
+                        ),
+                        onPressed: () async {
+                          await context
+                              .read<CategoryProvider>()
+                              .delete(category.id);
+                          if (!context.mounted) return;
+                          Navigator.pop(context);
+                        },
+                        child: const Text(
+                          "Eliminar",
+                          style: TextStyle(color: Colors.white),
+                        ),
                       ),
-                    );
-                  },
-                  child: Text("Editar"),
-                ),
-              ],
+                      ElevatedButton(
+                        onPressed: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  CategoryFormScreen(category: category),
+                            ),
+                          );
+                        },
+                        child: const Text("Editar"),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-      ),
     );
   }
 }

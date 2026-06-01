@@ -1,73 +1,80 @@
-// /lib/services/category_service
+import 'dart:convert' as convert;
+
+import 'package:http/http.dart' as http;
 import 'package:sales/config/app_config.dart';
 import 'package:sales/models/category.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert' as convert;
+import 'package:sales/services/api_exception.dart';
 
 class CategoryService {
   final String apiUrl = AppConfig.apiUrl;
 
   Future<List<Category>> all() async {
-    var url = Uri.http(apiUrl, '/product/categories/');
-    var response = await http.get(url);
-    if (response.statusCode == 200) {
-      var jsonResponse = convert.jsonDecode(response.body) as List<dynamic>;
+    final url = Uri.http(apiUrl, '/product/categories/');
+    final response = await http.get(url);
 
-      List<Category> categories = jsonResponse
+    if (response.statusCode == 200) {
+      final jsonResponse = convert.jsonDecode(response.body) as List<dynamic>;
+      return jsonResponse
           .map((catJson) => Category.fromJson(catJson))
           .toList();
-      return categories;
-    } else {
-      throw Exception('Error al cargar categorías');
     }
+
+    throw ApiException.fromResponse('Error al cargar categorias', response.body);
   }
 
   Future<Category> getById(int id) async {
-    var url = Uri.http(apiUrl, '/product/categories/$id/');
-    var response = await http.get(url);
+    final url = Uri.http(apiUrl, '/product/categories/$id/');
+    final response = await http.get(url);
+
     if (response.statusCode == 200) {
-      var jsonResponse = convert.jsonDecode(response.body) as dynamic;
-
-      Category category = Category.fromJson(jsonResponse);
-
-      return category;
-    } else {
-      throw Exception('Error al cargar categorías');
+      final jsonResponse = convert.jsonDecode(response.body);
+      return Category.fromJson(jsonResponse);
     }
+
+    throw ApiException.fromResponse('Error al cargar categoria', response.body);
   }
 
   Future<void> save(Category category) async {
-    var url = Uri.http(apiUrl, '/product/categories/');
-
-    var response = await http.post(
+    final url = Uri.http(apiUrl, '/product/categories/');
+    final response = await http.post(
       url,
       body: convert.jsonEncode(category.toJson()),
       headers: {'Content-Type': 'application/json'},
     );
+
     if (response.statusCode != 201) {
-      throw Exception('Error al guardar ');
+      throw ApiException.fromResponse(
+        'Error al guardar categoria',
+        response.body,
+      );
     }
   }
 
   Future<void> edit(int id, Category category) async {
-    var url = Uri.http(apiUrl, '/product/categories/$id/');
-
-    var response = await http.put(
+    final url = Uri.http(apiUrl, '/product/categories/$id/');
+    final response = await http.put(
       url,
       body: convert.jsonEncode(category.toJson()),
       headers: {'Content-Type': 'application/json'},
     );
+
     if (response.statusCode != 200) {
-      throw Exception('Error al editar ');
+      throw ApiException.fromResponse(
+        'Error al editar categoria',
+        response.body,
+      );
     }
   }
 
   Future<void> delete(int id) async {
-    var url = Uri.http(apiUrl, '/product/categories/$id/');
+    final url = Uri.http(apiUrl, '/product/categories/$id/');
+    final response = await http.delete(url);
 
-    var response = await http.delete(url);
-    if (response.statusCode != 204) {
-      throw Exception('Error al eliminar ');
+    if (response.statusCode != 204 && response.statusCode != 404) {
+      throw ApiException.fromResponse(
+        'Error al eliminar categoria',
+        response.body,
+      );
     }
   }
 }

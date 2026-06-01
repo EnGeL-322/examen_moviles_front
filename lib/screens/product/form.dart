@@ -15,15 +15,16 @@ class ProductFormScreen extends StatefulWidget {
 }
 
 class _ProductFormScreenState extends State<ProductFormScreen> {
-  TextEditingController controllerName = TextEditingController();
-  TextEditingController controllerDescription = TextEditingController();
-  TextEditingController controllerPrice = TextEditingController();
+  final TextEditingController controllerName = TextEditingController();
+  final TextEditingController controllerDescription = TextEditingController();
+  final TextEditingController controllerPrice = TextEditingController();
   int? selectedCategoryId;
+  bool _saving = false;
 
   @override
   void initState() {
     super.initState();
-    context.read<CategoryProvider>().loadAll();
+    context.read<CategoryProvider>().loadAll().catchError((_) {});
 
     final product = widget.product;
     if (product != null) {
@@ -34,20 +35,82 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     }
   }
 
+  @override
+  void dispose() {
+    controllerName.dispose();
+    controllerDescription.dispose();
+    controllerPrice.dispose();
+    super.dispose();
+  }
+
   int? _currentCategoryId(List<Category> categories) {
     if (categories.isEmpty) return null;
     final hasSelected = categories.any((cat) => cat.id == selectedCategoryId);
     return hasSelected ? selectedCategoryId : categories.first.id;
   }
 
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<void> _save(List<Category> categories, int? currentCategoryId) async {
+    final name = controllerName.text.trim();
+    final description = controllerDescription.text.trim();
+    final price = double.tryParse(controllerPrice.text.trim());
+
+    if (currentCategoryId == null) {
+      _showMessage('Registra una categoria primero');
+      return;
+    }
+
+    if (name.isEmpty || description.isEmpty || price == null || price <= 0) {
+      _showMessage('Completa todos los campos con un precio valido');
+      return;
+    }
+
+    final selectedCategory = categories.firstWhere(
+      (cat) => cat.id == currentCategoryId,
+    );
+
+    setState(() => _saving = true);
+
+    try {
+      final product = Product(
+        widget.product?.id ?? 0,
+        name,
+        price,
+        description,
+        selectedCategory,
+      );
+      final provider = context.read<ProductProvider>();
+
+      if (widget.product == null) {
+        await provider.save(product);
+      } else {
+        await provider.edit(widget.product!.id, product);
+      }
+
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (error) {
+      if (!mounted) return;
+      _showMessage(error.toString());
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final categories = context.watch<CategoryProvider>().categories;
     final currentCategoryId = _currentCategoryId(categories);
+    final isEditing = widget.product != null;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("Formulario de Producto"),
+        title: const Text("Formulario de Producto"),
         backgroundColor: Colors.orange,
       ),
       body: Padding(
@@ -55,10 +118,14 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         child: Column(
           children: [
             if (categories.isEmpty)
-              CircularProgressIndicator()
+              const Text('No hay categorias disponibles')
             else
-              DropdownButton<int>(
-                value: currentCategoryId,
+              DropdownButtonFormField<int>(
+                initialValue: currentCategoryId,
+                decoration: const InputDecoration(
+                  labelText: 'Categoria',
+                  border: OutlineInputBorder(),
+                ),
                 items: categories
                     .map(
                       (cat) => DropdownMenuItem<int>(
@@ -71,64 +138,39 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                   setState(() => selectedCategoryId = categoryId);
                 },
               ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             TextField(
               controller: controllerName,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: "Nombre",
                 border: OutlineInputBorder(),
               ),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             TextField(
               controller: controllerPrice,
-              decoration: InputDecoration(
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
                 labelText: "Precio",
                 border: OutlineInputBorder(),
               ),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             TextField(
               controller: controllerDescription,
-              decoration: InputDecoration(
-                labelText: "Descripción",
+              decoration: const InputDecoration(
+                labelText: "Descripcion",
                 border: OutlineInputBorder(),
               ),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             ElevatedButton(
-              onPressed: currentCategoryId == null
+              onPressed: _saving
                   ? null
-                  : () async {
-                final selectedCategory = categories.firstWhere(
-                  (cat) => cat.id == currentCategoryId,
-                );
-                if (widget.product == null) {
-                  await context.read<ProductProvider>().save(
-                    Product(
-                      0,
-                      controllerName.text,
-                      double.parse(controllerPrice.text),
-                      controllerDescription.text,
-                      selectedCategory,
-                    ),
-                  );
-                } else {
-                  await context.read<ProductProvider>().edit(
-                    widget.product!.id,
-                    Product(
-                      widget.product!.id,
-                      controllerName.text,
-                      double.parse(controllerPrice.text),
-                      controllerDescription.text,
-                      selectedCategory,
-                    ),
-                  );
-                }
-                if (!context.mounted) return;
-                Navigator.pop(context);
-              },
-              child: Text(widget.product == null ? "Crear" : "Editar"),
+                  : () => _save(categories, currentCategoryId),
+              child: Text(
+                _saving ? 'Guardando...' : (isEditing ? 'Editar' : 'Crear'),
+              ),
             ),
           ],
         ),
