@@ -3,7 +3,6 @@ import 'dart:convert' as convert;
 import 'package:http/http.dart' as http;
 import 'package:sales/config/app_config.dart';
 import 'package:sales/models/client.dart';
-import 'package:sales/models/product.dart';
 import 'package:sales/models/sale.dart';
 import 'package:sales/services/api_exception.dart';
 
@@ -22,18 +21,13 @@ class SaleService {
     throw ApiException.fromResponse('Error al cargar ventas', response.body);
   }
 
-  Future<void> save(Client client, Product product) async {
+  Future<Sale> save(Client client, List<SaleCartItem> items) async {
     final url = Uri.http(apiUrl, '/sale/sales/');
     final response = await http.post(
       url,
       body: convert.jsonEncode({
         'client': client.serverId ?? client.id,
-        'details': [
-          {
-            'product': product.id,
-            'quantity': 1,
-          }
-        ],
+        'details': items.map((item) => item.toJson()).toList(),
       }),
       headers: {'Content-Type': 'application/json'},
     );
@@ -41,5 +35,8 @@ class SaleService {
     if (response.statusCode != 201) {
       throw ApiException.fromResponse('Error al guardar venta', response.body);
     }
+
+    final jsonResponse = convert.jsonDecode(response.body);
+    return Sale.fromJson(jsonResponse);
   }
 }

@@ -121,6 +121,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
               const Text('No hay categorias disponibles')
             else
               DropdownButtonFormField<int>(
+                isExpanded: true,
                 initialValue: currentCategoryId,
                 decoration: const InputDecoration(
                   labelText: 'Categoria',
@@ -130,7 +131,11 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                     .map(
                       (cat) => DropdownMenuItem<int>(
                         value: cat.id,
-                        child: Text(cat.name),
+                        child: Text(
+                          cat.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     )
                     .toList(),

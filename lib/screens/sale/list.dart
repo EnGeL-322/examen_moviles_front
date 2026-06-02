@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sales/providers/sale_provider.dart';
+import 'package:sales/screens/sale/detail.dart';
 import 'package:sales/screens/sale/form.dart';
 
 class SaleListScreen extends StatefulWidget {
@@ -55,9 +56,17 @@ class _SaleListScreenState extends State<SaleListScreen> {
                     '${_formatDate(sale.createdAt)} - S/ ${sale.total.toStringAsFixed(2)}',
                   ),
                   subtitle: Text(
-                    'Cliente: ${sale.client.name}\nProducto: ${sale.product.name}',
+                    'Cliente: ${sale.client.name}\nProductos: ${sale.productsSummary}',
                   ),
                   isThreeLine: true,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SaleDetailScreen(sale: sale),
+                      ),
+                    );
+                  },
                 );
               },
             ),

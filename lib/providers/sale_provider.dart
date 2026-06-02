@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:sales/models/client.dart';
-import 'package:sales/models/product.dart';
 import 'package:sales/models/sale.dart';
 import 'package:sales/services/sale_service.dart';
 
@@ -16,8 +15,9 @@ class SaleProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> save(Client client, Product product) async {
-    await _service.save(client, product);
+  Future<Sale> save(Client client, List<SaleCartItem> items) async {
+    final sale = await _service.save(client, items);
     await loadAll();
+    return sale;
   }
 }

@@ -13,16 +13,15 @@ class MainScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Sistema de Ventas'),
-        backgroundColor: Colors.orange,
       ),
       drawer: Drawer(
         child: ListView(
           children: [
             const DrawerHeader(
-              decoration: BoxDecoration(color: Colors.orange),
+              decoration: BoxDecoration(color: Color(0xFFF28C00)),
               child: Text(
                 'Sistema de Ventas',
-                style: TextStyle(color: Colors.white, fontSize: 20),
+                style: TextStyle(color: Colors.black, fontSize: 20),
               ),
             ),
             ListTile(
